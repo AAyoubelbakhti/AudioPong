@@ -97,7 +97,7 @@ public class MainScreen implements Screen {
         ballOscillator.amplitude.set(0);
         lineOut.start();
 
-        restart();
+        //restart();
     }
 
     @Override
@@ -184,9 +184,9 @@ public class MainScreen implements Screen {
         ballOscillator.amplitude.set(0.5);
         float speed = ballVelocity.len();
         ballOscillator.frequency.set(440 + speed * 40);
-    );
+    }
 
-    private void updateBallSound() {
+        private void updateBallSound() {
         float worldWidth = viewport.getWorldWidth();
         float worldHeight = viewport.getWorldHeight();
         float normalizedX = ballSprite.getX() / worldWidth;
@@ -199,9 +199,8 @@ public class MainScreen implements Screen {
         gameOver = false;
         gameTime = 0f;
         ballSprite.setCenter(viewport.getWorldWidth() / 2, viewport.getWorldHeight() / 2);
-        float angle = MathUtils.random(MathUtils.PI / 4, 3 * MathUtils.PI / 4);
-        ballVelocity.set(MathUtils.cos(angle) * INITIAL_BALL_SPEED, MathUtils.sin(angle) * INITIAL_BALL_SPEED);
-        lineOut.start();
+        float angle = MathUtils.random(MathUtils.PI2);
+        ballVelocity.set(MathUtils.cos(angle) * INITIAL_BALL_SPEED, MathUtils.sin(angle) * INITIAL_BALL_SPEED);        lineOut.start();
     }
 
     @Override

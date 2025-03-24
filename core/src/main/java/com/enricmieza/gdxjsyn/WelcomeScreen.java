@@ -21,7 +21,8 @@ public class WelcomeScreen implements Screen {
     @Override
     public void show() {
         game.viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(),true);
-
+        game.camera.position.set(game.camera.viewportWidth / 2, game.camera.viewportHeight / 2, 0);
+        game.camera.update();
     }
 
     @Override
