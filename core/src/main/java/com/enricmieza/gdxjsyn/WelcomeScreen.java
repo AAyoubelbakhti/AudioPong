@@ -39,7 +39,7 @@ public class WelcomeScreen implements Screen {
             int width = Gdx.graphics.getWidth();
             if (x > width / 2) {
                 tutorialAudio.stop();
-                game.setScreen(new MainScreen(game, game.getAudioDevice()));
+                game.setScreen(new MainScreen(game));
             } else {
                 float currentTime = TimeUtils.millis() / 1000.0f;
                 if (currentTime - lastTouchTime < DOUBLE_TAP_THRESHOLD) {
