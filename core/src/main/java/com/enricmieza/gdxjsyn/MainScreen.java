@@ -56,8 +56,8 @@ public class MainScreen implements Screen {
     @Override
     public void show() {
         backgroundTexture = new Texture("background.png");
-        ballTexture = new Texture("ball.png");
-        paddleTexture = new Texture("paddle.png");
+        ballTexture = new Texture("Pelota.jpg");
+        paddleTexture = new Texture("raqueta.jpg");
 
         ballSprite = new Sprite(ballTexture);
         ballSprite.setSize(BALL_SIZE, BALL_SIZE);
@@ -122,12 +122,12 @@ public class MainScreen implements Screen {
         if (ballSprite.getX() <= 0 || ballSprite.getX() + ballSprite.getWidth() >= worldWidth) {
             ballVelocity.x = -ballVelocity.x;
             ballSprite.setX(MathUtils.clamp(ballSprite.getX(), 0, worldWidth - ballSprite.getWidth()));
-            //playBounceSound();
+            playBounceSound();
         }
         if (ballSprite.getY() + ballSprite.getHeight() >= worldHeight) {
             ballVelocity.y = -ballVelocity.y;
             ballSprite.setY(worldHeight - ballSprite.getHeight());
-            //playBounceSound();
+            playBounceSound();
         }
 
         if (ballRect.overlaps(paddleRect) && ballVelocity.y < 0) {
@@ -142,7 +142,7 @@ public class MainScreen implements Screen {
             ballVelocity.x = normalizedHitPosition * BALL_SPEED_INCREASE_FACTOR;
             ballVelocity.y *= 1.05f;
 
-            //playBounceSound();
+            playBounceSound();
         }
 
         if (ballSprite.getY() < 0) {
@@ -154,7 +154,7 @@ public class MainScreen implements Screen {
         }
 
         if (!gameOver) {
-            //updateBallSound();
+            updateBallSound();
         }
     }
 
@@ -228,7 +228,7 @@ public class MainScreen implements Screen {
              }
         }
         game.getBallOscillator().amplitude.set(0.05);
-        //updateBallSound();
+        updateBallSound();
     }
 
     @Override

@@ -1,2 +1,4 @@
 Audio.wav
-libgdx.png
+Pelota.jpg
+background.png
+raqueta.jpg

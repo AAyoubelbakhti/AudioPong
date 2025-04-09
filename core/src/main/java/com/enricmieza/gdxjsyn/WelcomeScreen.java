@@ -5,13 +5,17 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.TimeUtils;
+import com.jsyn.unitgen.LineOut;
+import com.jsyn.unitgen.SineOscillator;
+import com.jsyn.Synthesizer;
+import com.badlogic.gdx.Input;
 
 public class WelcomeScreen implements Screen {
     private final GdxJsynGame game;
     private Music tutorialAudio;
     private float lastTouchTime = 0f;
     private final float DOUBLE_TAP_THRESHOLD = 0.5f;
-
+    private SineOscillator testBeepOsc;
     public WelcomeScreen(GdxJsynGame game) {
         this.game = game;
         tutorialAudio = Gdx.audio.newMusic(Gdx.files.internal("Audio.wav"));
@@ -33,13 +37,19 @@ public class WelcomeScreen implements Screen {
         game.font.draw(game.batch, "Toca la derecha para empezar, izquierda para repetir", 50, 250);
         game.font.draw(game.batch, "Toca dos veces la izquierda para salir", 50, 200);
         game.batch.end();
+        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+            Gdx.app.log("INPUT", "Tecla ESPACIO presionada.");
+            tutorialAudio.stop();
+            game.setScreen(new MainMainScreen(game));
+            return;
+        }
 
         if (Gdx.input.justTouched()) {
             float x = Gdx.input.getX();
             int width = Gdx.graphics.getWidth();
             if (x > width / 2) {
                 tutorialAudio.stop();
-                game.setScreen(new MainScreen(game));
+                game.setScreen(new MainMainScreen(game));
             } else {
                 float currentTime = TimeUtils.millis() / 1000.0f;
                 if (currentTime - lastTouchTime < DOUBLE_TAP_THRESHOLD) {

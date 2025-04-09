@@ -48,7 +48,7 @@ public class GdxJsynGame extends Game {
         ballOscillator.frequency.set(440);
         ballOscillator.amplitude.set(0.0); 
         synth.start();
-        // lineOut.start();
+         lineOut.start();
         this.setScreen(new WelcomeScreen(this));
     }
 
