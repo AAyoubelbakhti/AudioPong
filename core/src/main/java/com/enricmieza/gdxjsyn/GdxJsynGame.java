@@ -20,7 +20,7 @@ public class GdxJsynGame extends Game {
     public FitViewport viewport;
     public OrthographicCamera camera;
     private Synthesizer synth;
-    private UnitOscillator ballOscillator;
+
     private LineOut lineOut;
 
     public GdxJsynGame(AudioDeviceManager device) {
@@ -39,14 +39,8 @@ public class GdxJsynGame extends Game {
 
             synth = JSyn.createSynthesizer(audioDevice);
         }
-        ballOscillator = new SineOscillator();
         lineOut = new LineOut();
-        synth.add(ballOscillator);
         synth.add(lineOut);
-        ballOscillator.output.connect(0, lineOut.input, 0);
-        ballOscillator.output.connect(0, lineOut.input, 1);
-        ballOscillator.frequency.set(440);
-        ballOscillator.amplitude.set(0.0); 
         synth.start();
          lineOut.start();
         this.setScreen(new WelcomeScreen(this));
@@ -75,10 +69,6 @@ public class GdxJsynGame extends Game {
 
     public Synthesizer getSynth() {
         return synth;
-    }
-
-    public UnitOscillator getBallOscillator() {
-        return ballOscillator;
     }
 
     public LineOut getLineOut() {

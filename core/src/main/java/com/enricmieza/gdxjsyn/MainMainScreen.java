@@ -3,149 +3,234 @@ package com.enricmieza.gdxjsyn;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.jsyn.Synthesizer;
-import com.jsyn.unitgen.LineOut;
-import com.jsyn.unitgen.UnitOscillator;
+import com.jsyn.unitgen.*;
 
 public class MainMainScreen implements Screen {
-
     private final GdxJsynGame game;
-    private UnitOscillator oscillator;
-    private LineOut lineOut;
-    private Synthesizer synth;
+    private final Synthesizer synth;
+    private final LineOut lineOut;
 
-    private final float MIN_FREQUENCY = 100.0f;
-    private final float MAX_FREQUENCY = 1200.0f;
-    private final float MIN_AMPLITUDE = 0.0f;
-    private final float MAX_AMPLITUDE = 0.5f;
+    private static final float WORLD_WIDTH = 0.5f;
+    private static final float WORLD_HEIGHT = 1.0f;
+    private static final float PLAYER_WIDTH = 0.20f;
+    private static final float PLAYER_Y_POSITION = 0.25f;
+    private static final float BALL_RADIUS = 0.02f;
+    private static final float INITIAL_BALL_SPEED_Y = 0.4f;
+    private static final float INITIAL_BALL_SPEED_X = 0.25f;
+    private static final float BALL_SPEED_INCREASE = 1.05f;
+    private static final float PLAYER_MOVE_SPEED = 0.7f;
 
-    private float currentFrequency;
-    private float currentAmplitude;
+    private float playerPositionX;
+    private float ballPositionX;
+    private float ballPositionY;
+    private float ballVelocityX;
+    private float ballVelocityY;
+    private boolean isGameOver;
 
-    private final float FREQUENCY_CHANGE_RATE = 300.0f;
-    private final float AMPLITUDE_CHANGE_RATE = 0.5f;
+    private UnitOscillator playerOscillator;
+    private UnitOscillator ballOscillator;
+    private Pan playerPanner;
+    private Pan ballPanner;
+
+    private static final float PLAYER_FREQUENCY = 110.0f;
+    private static final float PLAYER_AMPLITUDE = 0.25f;
+    private static final float BALL_BASE_FREQUENCY = 330.0f;
+    private static final float BALL_MAX_FREQUENCY = 990.0f;
+    private static final float BALL_BASE_AMPLITUDE = 0.35f;
+    private static final float BOUNCE_AMP_BOOST = 1.6f;
+    private static final float BOUNCE_DURATION = 0.08f;
 
     public MainMainScreen(GdxJsynGame game) {
         this.game = game;
         this.synth = game.getSynth();
         this.lineOut = game.getLineOut();
-        this.oscillator = game.getBallOscillator();
 
-        if (this.oscillator == null || this.lineOut == null || this.synth == null) {
-            Gdx.app.error("JSYN_MAINMAIN", "¡Error crítico! No se pudieron obtener los componentes JSyn desde GdxJsynGame.");
-        } else {
-            Gdx.app.log("JSYN_MAINMAIN", "Componentes JSyn obtenidos correctamente.");
+        playerOscillator = new SquareOscillator();
+        playerOscillator.frequency.set(PLAYER_FREQUENCY);
+        playerOscillator.amplitude.set(PLAYER_AMPLITUDE);
+
+        ballOscillator = new SineOscillator();
+        ballOscillator.frequency.set(BALL_BASE_FREQUENCY);
+        ballOscillator.amplitude.set(BALL_BASE_AMPLITUDE);
+
+        playerPanner = new Pan();
+        ballPanner = new Pan();
+
+        synth.add(playerOscillator);
+        synth.add(ballOscillator);
+        synth.add(playerPanner);
+        synth.add(ballPanner);
+
+        playerOscillator.output.connect(playerPanner.input);
+        playerPanner.output.connect(0, lineOut.input, 0);
+        playerPanner.output.connect(1, lineOut.input, 1);
+
+        ballOscillator.output.connect(ballPanner.input);
+        ballPanner.output.connect(0, lineOut.input, 0);
+        ballPanner.output.connect(1, lineOut.input, 1);
+
+        resetGame();
+    }
+
+    private void resetGame() {
+        playerPositionX = WORLD_WIDTH / 2f;
+        ballPositionX = WORLD_WIDTH / 2f;
+        ballPositionY = WORLD_HEIGHT * 0.75f;
+        ballVelocityY = -INITIAL_BALL_SPEED_Y;
+        ballVelocityX = MathUtils.random(-1f, 1f) * INITIAL_BALL_SPEED_X;
+        if (Math.abs(ballVelocityX) < 0.1f) {
+             ballVelocityX = (ballVelocityX > 0 ? 1f : -1f) * 0.1f;
         }
 
-        currentFrequency = (MIN_FREQUENCY + MAX_FREQUENCY) / 2.0f;
-        currentAmplitude = MIN_AMPLITUDE;
+        isGameOver = false;
+
+        Gdx.app.log("GAME", "Juego Reiniciado");
+         if (playerOscillator != null) playerOscillator.amplitude.set(PLAYER_AMPLITUDE);
+         if (ballOscillator != null) ballOscillator.amplitude.set(BALL_BASE_AMPLITUDE);
     }
 
     @Override
     public void show() {
-        Gdx.app.log("JSYN_MAINMAIN", "Mostrando MainMainScreen.");
+        Gdx.app.log("AUDIO_FRONTON", "Mostrando MainMainScreen (Audio Frontón).");
         try {
-            if (!lineOut.isEnabled()) {
-                Gdx.app.log("JSYN_MAINMAIN", "LineOut estaba inactivo. Iniciando en show().");
+            if (lineOut != null && !lineOut.isEnabled()) {
+                Gdx.app.log("JSYN", "LineOut inactivo, iniciando en show().");
                 lineOut.start();
             }
-            if (oscillator != null) {
-                oscillator.frequency.set(currentFrequency);
-                oscillator.amplitude.set(currentAmplitude);
+
+            if (isGameOver) {
+                if (playerOscillator != null) playerOscillator.amplitude.set(0.0);
+                if (ballOscillator != null) ballOscillator.amplitude.set(0.0);
+            } else {
+                if (playerOscillator != null) playerOscillator.amplitude.set(PLAYER_AMPLITUDE);
+                if (ballOscillator != null) ballOscillator.amplitude.set(BALL_BASE_AMPLITUDE);
             }
+
         } catch (Exception e) {
-            Gdx.app.error("JSYN_MAINMAIN", "Error al intentar iniciar LineOut o setear oscilador en show()", e);
+            Gdx.app.error("AUDIO_FRONTON", "Error en show() inicializando audio", e);
         }
     }
 
     @Override
     public void render(float delta) {
-        ScreenUtils.clear(0.1f, 0.2f, 0.3f, 1f);
-
+        ScreenUtils.clear(0.1f, 0.1f, 0.15f, 1f);
         handleKeyInput(delta);
-
-        if (oscillator != null) {
-            oscillator.frequency.set(currentFrequency);
-            oscillator.amplitude.set(currentAmplitude);
-        }
-
-        game.viewport.apply();
-        game.batch.setProjectionMatrix(game.camera.combined);
-
-        game.batch.begin();
-        game.font.getData().setScale(1.0f);
-        game.font.draw(game.batch, "MainMainScreen - Usa las flechas", 50, game.viewport.getWorldHeight() - 50);
-        game.font.draw(game.batch, String.format("Frec: %.1f Hz (Izq/Der)", currentFrequency), 50, game.viewport.getWorldHeight() - 100);
-        game.font.draw(game.batch, String.format("Amp: %.2f (Arr/Abj)", currentAmplitude), 50, game.viewport.getWorldHeight() - 150);
-        game.batch.end();
+        updateGame(delta);
+        updateAudio();
+        drawDebugInfo();
     }
 
     private void handleKeyInput(float delta) {
-        if (oscillator == null) return;
+        if (isGameOver) {
+            if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+                resetGame();
+            }
+            return;
+        }
 
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            currentFrequency -= FREQUENCY_CHANGE_RATE * delta;
+            playerPositionX += PLAYER_MOVE_SPEED * delta;
         }
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            currentFrequency += FREQUENCY_CHANGE_RATE * delta;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-            currentAmplitude -= AMPLITUDE_CHANGE_RATE * delta;
-        }
-        if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-            currentAmplitude += AMPLITUDE_CHANGE_RATE * delta;
+            playerPositionX -= PLAYER_MOVE_SPEED * delta;
         }
 
-        currentFrequency = MathUtils.clamp(currentFrequency, MIN_FREQUENCY, MAX_FREQUENCY);
-        currentAmplitude = MathUtils.clamp(currentAmplitude, MIN_AMPLITUDE, MAX_AMPLITUDE);
+        playerPositionX = MathUtils.clamp(playerPositionX, PLAYER_WIDTH / 2f, WORLD_WIDTH - PLAYER_WIDTH / 2f);
     }
 
-    @Override
-    public void resize(int width, int height) {
-        game.viewport.update(width, height, true);
-    }
-
-    @Override
-    public void pause() {
-        Gdx.app.log("JSYN_MAINMAIN", "Pausando MainMainScreen.");
-        if (oscillator != null) {
-            oscillator.amplitude.set(0.0);
+    private void updateGame(float delta) {
+        if (isGameOver) {
+            return;
         }
-    }
 
-    @Override
-    public void resume() {
-        Gdx.app.log("JSYN_MAINMAIN", "Reanudando MainMainScreen.");
-        try {
-            if (lineOut != null && !lineOut.isEnabled()) {
-                Gdx.app.log("JSYN_MAINMAIN", "LineOut estaba inactivo. Iniciando en resume().");
-                lineOut.start();
+        ballPositionX += ballVelocityX * delta;
+        ballPositionY += ballVelocityY * delta;
+
+        boolean bounced = false;
+
+        if (ballPositionX - BALL_RADIUS < 0 && ballVelocityX < 0) {
+            ballPositionX = BALL_RADIUS;
+            ballVelocityX *= -1;
+            playWallBounceSound(ballPositionX);
+            bounced = true;
+        } else if (ballPositionX + BALL_RADIUS > WORLD_WIDTH && ballVelocityX > 0) {
+            ballPositionX = WORLD_WIDTH - BALL_RADIUS;
+            ballVelocityX *= -1;
+            playWallBounceSound(ballPositionX);
+            bounced = true;
+        }
+
+        if (ballPositionY + BALL_RADIUS > WORLD_HEIGHT && ballVelocityY > 0) {
+            ballPositionY = WORLD_HEIGHT - BALL_RADIUS;
+            ballVelocityY *= -1;
+            if (!bounced) playWallBounceSound(ballPositionX);
+             bounced = true;
+        }
+
+        if (ballVelocityY < 0 && ballPositionY - BALL_RADIUS <= PLAYER_Y_POSITION) {
+            float playerLeftEdge = playerPositionX - PLAYER_WIDTH / 2f;
+            float playerRightEdge = playerPositionX + PLAYER_WIDTH / 2f;
+
+            if (ballPositionX >= playerLeftEdge && ballPositionX <= playerRightEdge) {
+                ballPositionY = PLAYER_Y_POSITION + BALL_RADIUS;
+                ballVelocityY *= -1;
+
+                float hitOffset = (ballPositionX - playerPositionX) / (PLAYER_WIDTH / 2f);
+                ballVelocityX += hitOffset * Math.abs(ballVelocityY) * 0.5f;
+                 ballVelocityX = MathUtils.clamp(ballVelocityX, -INITIAL_BALL_SPEED_Y * 2, INITIAL_BALL_SPEED_Y * 2);
+
+                ballVelocityX *= BALL_SPEED_INCREASE;
+                ballVelocityY *= BALL_SPEED_INCREASE;
+
+                playPlayerHitSound(ballPositionX);
+
+            } else {
+                isGameOver = true;
+                playGameOverSound();
+                if (playerOscillator != null) playerOscillator.amplitude.set(0.0);
+                if (ballOscillator != null) ballOscillator.amplitude.set(0.0);
             }
-            if (oscillator != null) {
-                 oscillator.amplitude.set(currentAmplitude);
-                 oscillator.frequency.set(currentFrequency);
-            }
-        } catch (Exception e) {
-            Gdx.app.error("JSYN_MAINMAIN", "Error al intentar iniciar LineOut o setear oscilador en resume()", e);
         }
     }
 
-    @Override
-    public void hide() {
-        Gdx.app.log("JSYN_MAINMAIN", "Ocultando MainMainScreen.");
-        if (oscillator != null) {
-            oscillator.amplitude.set(0.0);
+    private void updateAudio() {
+        if (isGameOver) {
+            return;
         }
+
+        float playerPanValue = (playerPositionX / WORLD_WIDTH) * 2.0f - 1.0f;
+        playerPanner.pan.set(MathUtils.clamp(playerPanValue, -1f, 1f));
+
+        float ballPanValue = (ballPositionX / WORLD_WIDTH) * 2.0f - 1.0f;
+        ballPanner.pan.set(MathUtils.clamp(ballPanValue, -1f, 1f));
+
+        float normalizedY = MathUtils.clamp(ballPositionY / WORLD_HEIGHT, 0f, 1f);
+        float targetFrequency = BALL_BASE_FREQUENCY + normalizedY * (BALL_MAX_FREQUENCY - BALL_BASE_FREQUENCY);
+        ballOscillator.frequency.set(targetFrequency);
     }
 
-    @Override
-    public void dispose() {
-        Gdx.app.log("JSYN_MAINMAIN", "Disposing MainMainScreen.");
-        if (oscillator != null) {
-            oscillator.amplitude.set(0.0);
-        }
+    private void drawDebugInfo() {
+
     }
+
+    private void playWallBounceSound(float positionX) {
+
+    }
+
+    private void playPlayerHitSound(float positionX) {
+
+    }
+
+    private void playGameOverSound() {
+
+    }
+
+    @Override public void resize(int width, int height) {}
+    @Override public void pause() {}
+    @Override public void resume() {}
+    @Override public void hide() {}
+    @Override public void dispose() {}
 }
