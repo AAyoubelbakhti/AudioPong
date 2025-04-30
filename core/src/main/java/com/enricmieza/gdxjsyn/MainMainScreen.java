@@ -7,12 +7,19 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.jsyn.Synthesizer;
 import com.jsyn.unitgen.*;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.utils.viewport.Viewport;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 
 public class MainMainScreen implements Screen {
     private final GdxJsynGame game;
     private final Synthesizer synth;
     private final LineOut lineOut;
-
+    private ShapeRenderer shapeRenderer;
+    private OrthographicCamera camera;
+    private Viewport viewport;
     private static final float WORLD_WIDTH = 0.5f;
     private static final float WORLD_HEIGHT = 1.0f;
     private static final float PLAYER_WIDTH = 0.20f;
@@ -71,7 +78,11 @@ public class MainMainScreen implements Screen {
         ballOscillator.output.connect(ballPanner.input);
         ballPanner.output.connect(0, lineOut.input, 0);
         ballPanner.output.connect(1, lineOut.input, 1);
-
+        camera = new OrthographicCamera();
+        viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
+        shapeRenderer = new ShapeRenderer();
+        camera.position.set(WORLD_WIDTH / 2f, WORLD_HEIGHT / 2f, 0);
+        camera.update();
         resetGame();
     }
 
@@ -82,14 +93,16 @@ public class MainMainScreen implements Screen {
         ballVelocityY = -INITIAL_BALL_SPEED_Y;
         ballVelocityX = MathUtils.random(-1f, 1f) * INITIAL_BALL_SPEED_X;
         if (Math.abs(ballVelocityX) < 0.1f) {
-             ballVelocityX = (ballVelocityX > 0 ? 1f : -1f) * 0.1f;
+            ballVelocityX = (ballVelocityX > 0 ? 1f : -1f) * 0.1f;
         }
 
         isGameOver = false;
 
         Gdx.app.log("GAME", "Juego Reiniciado");
-         if (playerOscillator != null) playerOscillator.amplitude.set(PLAYER_AMPLITUDE);
-         if (ballOscillator != null) ballOscillator.amplitude.set(BALL_BASE_AMPLITUDE);
+        if (playerOscillator != null)
+            playerOscillator.amplitude.set(PLAYER_AMPLITUDE);
+        if (ballOscillator != null)
+            ballOscillator.amplitude.set(BALL_BASE_AMPLITUDE);
     }
 
     @Override
@@ -102,11 +115,15 @@ public class MainMainScreen implements Screen {
             }
 
             if (isGameOver) {
-                if (playerOscillator != null) playerOscillator.amplitude.set(0.0);
-                if (ballOscillator != null) ballOscillator.amplitude.set(0.0);
+                if (playerOscillator != null)
+                    playerOscillator.amplitude.set(0.0);
+                if (ballOscillator != null)
+                    ballOscillator.amplitude.set(0.0);
             } else {
-                if (playerOscillator != null) playerOscillator.amplitude.set(PLAYER_AMPLITUDE);
-                if (ballOscillator != null) ballOscillator.amplitude.set(BALL_BASE_AMPLITUDE);
+                if (playerOscillator != null)
+                    playerOscillator.amplitude.set(PLAYER_AMPLITUDE);
+                if (ballOscillator != null)
+                    ballOscillator.amplitude.set(BALL_BASE_AMPLITUDE);
             }
 
         } catch (Exception e) {
@@ -120,6 +137,13 @@ public class MainMainScreen implements Screen {
         handleKeyInput(delta);
         updateGame(delta);
         updateAudio();
+        camera.update();
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(Color.BLUE);
+        shapeRenderer.circle(ballPositionX, ballPositionY, BALL_RADIUS, 30);
+        shapeRenderer.end();
+
         drawDebugInfo();
     }
 
@@ -166,8 +190,9 @@ public class MainMainScreen implements Screen {
         if (ballPositionY + BALL_RADIUS > WORLD_HEIGHT && ballVelocityY > 0) {
             ballPositionY = WORLD_HEIGHT - BALL_RADIUS;
             ballVelocityY *= -1;
-            if (!bounced) playWallBounceSound(ballPositionX);
-             bounced = true;
+            if (!bounced)
+                playWallBounceSound(ballPositionX);
+            bounced = true;
         }
 
         if (ballVelocityY < 0 && ballPositionY - BALL_RADIUS <= PLAYER_Y_POSITION) {
@@ -180,7 +205,7 @@ public class MainMainScreen implements Screen {
 
                 float hitOffset = (ballPositionX - playerPositionX) / (PLAYER_WIDTH / 2f);
                 ballVelocityX += hitOffset * Math.abs(ballVelocityY) * 0.5f;
-                 ballVelocityX = MathUtils.clamp(ballVelocityX, -INITIAL_BALL_SPEED_Y * 2, INITIAL_BALL_SPEED_Y * 2);
+                ballVelocityX = MathUtils.clamp(ballVelocityX, -INITIAL_BALL_SPEED_Y * 2, INITIAL_BALL_SPEED_Y * 2);
 
                 ballVelocityX *= BALL_SPEED_INCREASE;
                 ballVelocityY *= BALL_SPEED_INCREASE;
@@ -190,8 +215,10 @@ public class MainMainScreen implements Screen {
             } else {
                 isGameOver = true;
                 playGameOverSound();
-                if (playerOscillator != null) playerOscillator.amplitude.set(0.0);
-                if (ballOscillator != null) ballOscillator.amplitude.set(0.0);
+                if (playerOscillator != null)
+                    playerOscillator.amplitude.set(0.0);
+                if (ballOscillator != null)
+                    ballOscillator.amplitude.set(0.0);
             }
         }
     }
@@ -228,9 +255,24 @@ public class MainMainScreen implements Screen {
 
     }
 
-    @Override public void resize(int width, int height) {}
-    @Override public void pause() {}
-    @Override public void resume() {}
-    @Override public void hide() {}
-    @Override public void dispose() {}
+    @Override
+    public void resize(int width, int height) {
+viewport.update(width, height, true);
+}
+
+    @Override
+    public void pause() {
+    }
+
+    @Override
+    public void resume() {
+    }
+
+    @Override
+    public void hide() {
+    }
+
+    @Override
+    public void dispose() {
+    }
 }
