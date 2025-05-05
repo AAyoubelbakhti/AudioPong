@@ -134,7 +134,7 @@ public class MainMainScreen implements Screen {
     @Override
     public void render(float delta) {
         ScreenUtils.clear(0.1f, 0.1f, 0.15f, 1f);
-        handleKeyInput(delta);
+        handleInput(delta);
         updateGame(delta);
         updateAudio();
         camera.update();
@@ -142,26 +142,44 @@ public class MainMainScreen implements Screen {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(Color.BLUE);
         shapeRenderer.circle(ballPositionX, ballPositionY, BALL_RADIUS, 30);
+        shapeRenderer.setColor(Color.GREEN);
+        float playerRectX = playerPositionX - PLAYER_WIDTH / 2f;
+        float playerRectY = PLAYER_Y_POSITION;
+        float playerHeight = 0.02f;
+        shapeRenderer.rect(playerRectX, playerRectY, PLAYER_WIDTH, playerHeight);
+        
         shapeRenderer.end();
 
         drawDebugInfo();
     }
 
-    private void handleKeyInput(float delta) {
+    private void handleInput(float delta) {
         if (isGameOver) {
             if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
                 resetGame();
             }
+            if(Gdx.input.justTouched()) {
+                resetGame(); 
+            }
             return;
         }
-
+        float targetDeltaX = 0;
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            playerPositionX += PLAYER_MOVE_SPEED * delta;
+            targetDeltaX -= PLAYER_MOVE_SPEED * delta;
         }
         if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            playerPositionX -= PLAYER_MOVE_SPEED * delta;
+            targetDeltaX += PLAYER_MOVE_SPEED * delta;
         }
 
+        if (Gdx.input.isTouched()) {
+            float screenDeltaX = Gdx.input.getDeltaX();
+            float screenWidthPixels = Gdx.graphics.getWidth();
+            float worldUnitsPerPixel = WORLD_WIDTH / screenWidthPixels;
+            float touchWorldDeltaX = screenDeltaX * worldUnitsPerPixel;
+            targetDeltaX += touchWorldDeltaX;
+        }
+        playerPositionX += targetDeltaX;
+        
         playerPositionX = MathUtils.clamp(playerPositionX, PLAYER_WIDTH / 2f, WORLD_WIDTH - PLAYER_WIDTH / 2f);
     }
 
